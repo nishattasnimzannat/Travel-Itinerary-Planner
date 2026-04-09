@@ -1,0 +1,1 @@
+console.log("Travel Itinerary Planner loaded");
