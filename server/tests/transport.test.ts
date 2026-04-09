@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { TransportService } from "./src/services/transportService";
-import type { Transport } from "./src/models/transport";
+import { TransportService } from "../src/services/transportService";
+import type { Transport } from "../src/models/transport";
 
 describe("Transportation planning (9)", () => {
   it("adds and retrieves transports", () => {

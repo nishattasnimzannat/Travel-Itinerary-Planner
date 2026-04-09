@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { StaticRatesProvider, convert } from "./src/currency/provider";
-import { money } from "./src/models/money";
+import { StaticRatesProvider, convert } from "../src/currency/provider";
+import { money } from "../src/models/money";
 
 describe("Currency conversion (18)", () => {
   it("converts USD to EUR using static rates", async () => {

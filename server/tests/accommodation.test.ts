@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { AccommodationService } from "./src/services/accommodationService";
-import type { Accommodation } from "./src/models/accommodation";
+import { AccommodationService } from "../src/services/accommodationService";
+import type { Accommodation } from "../src/models/accommodation";
 
 describe("Accommodation management (8)", () => {
   it("adds, updates and lists by trip", () => {

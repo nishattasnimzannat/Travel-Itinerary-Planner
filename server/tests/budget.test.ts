@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { BudgetService } from "./src/services/budgetService";
-import type { Budget, Expense } from "./src/models/budget";
-import { StaticRatesProvider } from "./src/currency/provider";
-import { money } from "./src/models/money";
+import { BudgetService } from "../src/services/budgetService";
+import type { Budget, Expense } from "../src/models/budget";
+import { StaticRatesProvider } from "../src/currency/provider";
+import { money } from "../src/models/money";
 
 describe("Budget planning (6) with cross-currency expenses", () => {
   it("summarizes planned, spent and remaining", async () => {

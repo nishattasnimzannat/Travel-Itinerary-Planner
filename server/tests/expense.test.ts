@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { ExpenseService } from "./src/services/expenseService";
-import { money } from "./src/models/money";
+import { ExpenseService } from "../src/services/expenseService";
+import { money } from "../src/models/money";
 
 describe("Expense tracking (7)", () => {
   it("adds and summarizes by category", () => {
