@@ -8,6 +8,7 @@ import Budget from './pages/Budget';
 import Accommodation from './pages/Accommodation';
 import Transport from './pages/Transport';
 import Expenses from './pages/Expenses';
+import CurrencyConverter from './pages/CurrencyConverter';
 
 function Layout() {
   return (
@@ -34,6 +35,7 @@ const router = createBrowserRouter([
           { path: 'accommodation', element: <Accommodation /> },
           { path: 'transport', element: <Transport /> },
           { path: 'expenses', element: <Expenses /> },
+          { path: 'currency', element: <CurrencyConverter /> },
         ],
       },
     ],

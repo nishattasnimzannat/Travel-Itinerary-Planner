@@ -12,4 +12,5 @@ export interface Transport {
   tripId: string;
   type: string;
   segments: TransportSegment[];
+  bookingReference?: string;
 }

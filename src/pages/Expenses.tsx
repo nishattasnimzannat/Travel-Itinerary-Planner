@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { store, uid, type LocalExpense, type BudgetCategory } from '../store';
-import { Plus, Receipt, Trash2 } from 'lucide-react';
+import { Plus, Receipt, Trash2, Pencil } from 'lucide-react';
 
 const CATEGORIES: (keyof BudgetCategory)[] = ['food', 'transport', 'accommodation', 'activities', 'other'];
 const CAT_EMOJI: Record<string, string> = {
@@ -16,17 +16,38 @@ export default function Expenses() {
   const [items, setItems] = useState<LocalExpense[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(BLANK);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => { setItems(store.getExpenses(id!)); }, [id]);
 
   const add = () => {
     if (!form.amount) return;
-    const newE: LocalExpense = { ...form, id: uid(), tripId: id!, date: form.date || new Date().toISOString().slice(0, 10) };
-    const updated = [newE, ...items];
+    let updated: LocalExpense[];
+    if (editingId) {
+      // Edit existing
+      updated = items.map(e =>
+        e.id === editingId
+          ? { ...e, ...form, date: form.date || e.date }
+          : e
+      );
+    } else {
+      // Add new
+      const newE: LocalExpense = { ...form, id: uid(), tripId: id!, date: form.date || new Date().toISOString().slice(0, 10) };
+      updated = [...items, newE];
+    }
+    // Sort by date (chronological — FR-29)
+    updated.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     store.saveExpenses(id!, updated);
     setItems(updated);
     setForm(BLANK);
+    setEditingId(null);
     setShowForm(false);
+  };
+
+  const startEdit = (e: LocalExpense) => {
+    setForm({ category: e.category, amount: e.amount, currency: e.currency, description: e.description, date: e.date });
+    setEditingId(e.id);
+    setShowForm(true);
   };
 
   const remove = (eId: string) => {
@@ -51,23 +72,27 @@ export default function Expenses() {
           <p className="text-sm text-neutral-400 mt-0.5">Total: <span className="text-white font-semibold">${total.toFixed(2)}</span></p>
         </div>
         <button
-          onClick={() => setShowForm(true)}
+          onClick={() => { setForm(BLANK); setEditingId(null); setShowForm(true); }}
           className="flex items-center gap-2 px-4 py-2 bg-white text-black text-sm font-medium rounded-full hover:bg-neutral-200 transition-colors"
         >
           <Plus className="w-3.5 h-3.5" /> Add
         </button>
       </div>
 
-      {/* Category summary pills */}
+      {/* Category summary pills with percentage (FR-31) */}
       {items.length > 0 && (
         <div className="flex flex-wrap gap-2">
-          {CATEGORIES.filter(c => summary[c] > 0).map(c => (
-            <div key={c} className="px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs text-neutral-300 flex items-center gap-1.5">
-              <span>{CAT_EMOJI[c]}</span>
-              <span className="capitalize">{c}</span>
-              <span className="text-white font-semibold ml-1">${summary[c].toFixed(2)}</span>
-            </div>
-          ))}
+          {CATEGORIES.filter(c => summary[c] > 0).map(c => {
+            const pct = total > 0 ? ((summary[c] / total) * 100).toFixed(1) : '0';
+            return (
+              <div key={c} className="px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs text-neutral-300 flex items-center gap-1.5">
+                <span>{CAT_EMOJI[c]}</span>
+                <span className="capitalize">{c}</span>
+                <span className="text-white font-semibold ml-1">${summary[c].toFixed(2)}</span>
+                <span className="text-neutral-500">({pct}%)</span>
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -91,6 +116,12 @@ export default function Expenses() {
               <div className="flex items-center gap-3">
                 <span className="text-white font-semibold">{e.amount} {e.currency}</span>
                 <button
+                  onClick={() => startEdit(e)}
+                  className="opacity-0 group-hover:opacity-100 p-1.5 text-neutral-500 hover:text-purple-400 transition-all"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                </button>
+                <button
                   onClick={() => remove(e.id)}
                   className="opacity-0 group-hover:opacity-100 p-1.5 text-neutral-500 hover:text-red-400 transition-all"
                 >
@@ -102,11 +133,11 @@ export default function Expenses() {
         </div>
       )}
 
-      {/* Add modal */}
+      {/* Add/Edit modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-neutral-900 border border-white/10 rounded-3xl p-8 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-6 text-white">Add Expense</h2>
+            <h2 className="text-xl font-bold mb-6 text-white">{editingId ? 'Edit Expense' : 'Add Expense'}</h2>
             <div className="space-y-4">
               <div>
                 <label className="text-xs text-neutral-400 mb-2 block uppercase tracking-wide">Category</label>
@@ -155,8 +186,8 @@ export default function Expenses() {
                   value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} />
               </div>
               <div className="flex gap-3 mt-2">
-                <button onClick={() => setShowForm(false)} className="flex-1 px-4 py-2.5 border border-white/10 rounded-full text-neutral-400 hover:text-white transition-colors">Cancel</button>
-                <button onClick={add} className="flex-1 px-4 py-2.5 bg-white text-black font-medium rounded-full hover:bg-neutral-200 transition-colors">Add</button>
+                <button onClick={() => { setShowForm(false); setEditingId(null); }} className="flex-1 px-4 py-2.5 border border-white/10 rounded-full text-neutral-400 hover:text-white transition-colors">Cancel</button>
+                <button onClick={add} className="flex-1 px-4 py-2.5 bg-white text-black font-medium rounded-full hover:bg-neutral-200 transition-colors">{editingId ? 'Save' : 'Add'}</button>
               </div>
             </div>
           </div>

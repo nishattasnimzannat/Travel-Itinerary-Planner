@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { store, type BudgetCategory } from '../store';
-import { Wallet, TrendingDown, TrendingUp } from 'lucide-react';
+import { Wallet, TrendingDown, TrendingUp, RotateCcw } from 'lucide-react';
 
 const CATEGORIES: (keyof BudgetCategory)[] = ['food', 'transport', 'accommodation', 'activities', 'other'];
 const COLORS: Record<keyof BudgetCategory, string> = {
@@ -11,12 +11,14 @@ const COLORS: Record<keyof BudgetCategory, string> = {
   activities: 'bg-emerald-400',
   other: 'bg-neutral-400',
 };
+const CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'BDT', 'CAD', 'AUD', 'INR', 'SGD', 'CHF'];
 
 export default function Budget() {
   const { id } = useParams<{ id: string }>();
   const [budget, setBudget] = useState<BudgetCategory>(store.getBudget(id!));
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<BudgetCategory>(budget);
+  const [currency, setCurrency] = useState(() => localStorage.getItem(`budget_currency_${id}`) || 'USD');
 
   const expenses = store.getExpenses(id!);
 
@@ -24,9 +26,8 @@ export default function Budget() {
     food: 0, transport: 0, accommodation: 0, activities: 0, other: 0,
   };
   expenses.forEach(e => {
-    if (e.currency === 'USD' || !e.currency) {
-      spent[e.category] = (spent[e.category] || 0) + e.amount;
-    }
+    // Simplified: count all expenses regardless of currency
+    spent[e.category] = (spent[e.category] || 0) + e.amount;
   });
 
   const totalBudget = CATEGORIES.reduce((s, c) => s + (budget[c] || 0), 0);
@@ -35,14 +36,25 @@ export default function Budget() {
 
   const saveBudget = () => {
     store.saveBudget(id!, draft);
+    localStorage.setItem(`budget_currency_${id}`, currency);
     setBudget(draft);
     setEditing(false);
+  };
+
+  const resetBudget = () => {
+    const empty: BudgetCategory = { food: 0, transport: 0, accommodation: 0, activities: 0, other: 0 };
+    store.saveBudget(id!, empty);
+    setBudget(empty);
+    setDraft(empty);
   };
 
   useEffect(() => {
     setBudget(store.getBudget(id!));
     setDraft(store.getBudget(id!));
+    setCurrency(localStorage.getItem(`budget_currency_${id}`) || 'USD');
   }, [id]);
+
+  const currencySymbol = currency === 'USD' ? '$' : currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : currency === 'JPY' ? '¥' : currency + ' ';
 
   return (
     <div className="space-y-6">
@@ -55,7 +67,7 @@ export default function Budget() {
         ].map(c => (
           <div key={c.label} className="p-5 rounded-2xl bg-white/5 border border-white/10">
             <c.icon className={`w-5 h-5 mb-3 ${c.color}`} />
-            <div className={`text-2xl font-bold ${c.color}`}>${c.value.toLocaleString()}</div>
+            <div className={`text-2xl font-bold ${c.color}`}>{currencySymbol}{c.value.toLocaleString()}</div>
             <div className="text-xs text-neutral-500 mt-1">{c.label}</div>
           </div>
         ))}
@@ -65,12 +77,21 @@ export default function Budget() {
       <div className="p-6 rounded-2xl bg-white/5 border border-white/10">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-semibold text-white">Category Breakdown</h2>
-          <button
-            onClick={() => { setDraft(budget); setEditing(true); }}
-            className="text-sm text-purple-400 hover:text-purple-300 transition-colors"
-          >
-            Edit budget
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={resetBudget}
+              className="flex items-center gap-1 text-sm text-neutral-500 hover:text-red-400 transition-colors"
+              title="Reset budget to zero"
+            >
+              <RotateCcw className="w-3.5 h-3.5" /> Reset
+            </button>
+            <button
+              onClick={() => { setDraft(budget); setEditing(true); }}
+              className="text-sm text-purple-400 hover:text-purple-300 transition-colors"
+            >
+              Edit budget
+            </button>
+          </div>
         </div>
 
         <div className="space-y-5">
@@ -84,7 +105,7 @@ export default function Budget() {
                 <div className="flex justify-between text-sm mb-1.5">
                   <span className="capitalize text-neutral-300">{cat}</span>
                   <span className={over ? 'text-red-400' : 'text-neutral-400'}>
-                    ${s.toFixed(0)} / ${b.toFixed(0)}
+                    {currencySymbol}{s.toFixed(0)} / {currencySymbol}{b.toFixed(0)}
                   </span>
                 </div>
                 <div className="h-2 bg-white/10 rounded-full overflow-hidden">
@@ -103,8 +124,21 @@ export default function Budget() {
       {editing && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-neutral-900 border border-white/10 rounded-3xl p-8 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-6 text-white">Set Budget (USD)</h2>
+            <h2 className="text-xl font-bold mb-6 text-white">Set Budget</h2>
             <div className="space-y-4">
+              {/* Currency selector (FR-23) */}
+              <div>
+                <label className="text-xs text-neutral-400 mb-1.5 block uppercase tracking-wide">Budget Currency</label>
+                <select
+                  className="w-full bg-neutral-800 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 transition-colors"
+                  value={currency}
+                  onChange={e => setCurrency(e.target.value)}
+                >
+                  {CURRENCIES.map(c => (
+                    <option key={c} value={c} className="bg-neutral-900">{c}</option>
+                  ))}
+                </select>
+              </div>
               {CATEGORIES.map(cat => (
                 <div key={cat}>
                   <label className="text-xs text-neutral-400 mb-1.5 block uppercase tracking-wide capitalize">{cat}</label>

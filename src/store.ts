@@ -35,6 +35,7 @@ export interface LocalAccommodation {
   checkOut: string;
   pricePerNight: number;
   currency: string;
+  confirmationNumber?: string;
 }
 
 export interface TransportSegment {
@@ -51,6 +52,7 @@ export interface LocalTransport {
   tripId: string;
   type: 'flight' | 'train' | 'bus' | 'car';
   segments: TransportSegment[];
+  bookingReference?: string;
 }
 
 // --- LocalStorage helpers ---

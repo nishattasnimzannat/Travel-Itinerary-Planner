@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { store, uid, type LocalAccommodation } from '../store';
-import { Plus, Building2, Calendar, Trash2, DollarSign } from 'lucide-react';
+import { Plus, Building2, Calendar, Trash2, DollarSign, Pencil, Hash } from 'lucide-react';
 
 const BLANK: Omit<LocalAccommodation, 'id' | 'tripId'> = {
-  name: '', address: '', checkIn: '', checkOut: '', pricePerNight: 0, currency: 'USD',
+  name: '', address: '', checkIn: '', checkOut: '', pricePerNight: 0, currency: 'USD', confirmationNumber: '',
 };
 
 export default function Accommodation() {
@@ -12,16 +12,35 @@ export default function Accommodation() {
   const [items, setItems] = useState<LocalAccommodation[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(BLANK);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => { setItems(store.getAccommodations(id!)); }, [id]);
 
-  const add = () => {
+  const save = () => {
     if (!form.name) return;
-    const updated = [...items, { ...form, id: uid(), tripId: id! }];
+    let updated: LocalAccommodation[];
+    if (editingId) {
+      updated = items.map(a =>
+        a.id === editingId ? { ...a, ...form } : a
+      );
+    } else {
+      updated = [...items, { ...form, id: uid(), tripId: id! }];
+    }
     store.saveAccommodations(id!, updated);
     setItems(updated);
     setForm(BLANK);
+    setEditingId(null);
     setShowForm(false);
+  };
+
+  const startEdit = (a: LocalAccommodation) => {
+    setForm({
+      name: a.name, address: a.address, checkIn: a.checkIn, checkOut: a.checkOut,
+      pricePerNight: a.pricePerNight, currency: a.currency,
+      confirmationNumber: a.confirmationNumber || '',
+    });
+    setEditingId(a.id);
+    setShowForm(true);
   };
 
   const remove = (accId: string) => {
@@ -40,7 +59,7 @@ export default function Accommodation() {
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-white">Accommodation</h2>
         <button
-          onClick={() => setShowForm(true)}
+          onClick={() => { setForm(BLANK); setEditingId(null); setShowForm(true); }}
           className="flex items-center gap-2 px-4 py-2 bg-white text-black text-sm font-medium rounded-full hover:bg-neutral-200 transition-colors"
         >
           <Plus className="w-3.5 h-3.5" /> Add
@@ -74,28 +93,43 @@ export default function Accommodation() {
                       {nights(a) > 0 && ` · Total: ${(a.pricePerNight * nights(a)).toLocaleString()} ${a.currency}`}
                     </span>
                   )}
+                  {a.confirmationNumber && (
+                    <span className="flex items-center gap-1">
+                      <Hash className="w-3 h-3" />
+                      Conf: {a.confirmationNumber}
+                    </span>
+                  )}
                 </div>
               </div>
-              <button
-                onClick={() => remove(a.id)}
-                className="opacity-0 group-hover:opacity-100 p-1.5 text-neutral-500 hover:text-red-400 transition-all"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+              <div className="flex gap-1 shrink-0">
+                <button
+                  onClick={() => startEdit(a)}
+                  className="opacity-0 group-hover:opacity-100 p-1.5 text-neutral-500 hover:text-purple-400 transition-all"
+                >
+                  <Pencil className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => remove(a.id)}
+                  className="opacity-0 group-hover:opacity-100 p-1.5 text-neutral-500 hover:text-red-400 transition-all"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           ))}
         </div>
       )}
 
-      {/* Add modal */}
+      {/* Add/Edit modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-neutral-900 border border-white/10 rounded-3xl p-8 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-6 text-white">Add Accommodation</h2>
+            <h2 className="text-xl font-bold mb-6 text-white">{editingId ? 'Edit Accommodation' : 'Add Accommodation'}</h2>
             <div className="space-y-4">
               {[
                 { key: 'name', label: 'Hotel / Property Name', placeholder: 'e.g. Le Grand Hôtel', type: 'text' },
                 { key: 'address', label: 'Address', placeholder: 'e.g. 1 Rue de Rivoli, Paris', type: 'text' },
+                { key: 'confirmationNumber', label: 'Confirmation Number', placeholder: 'e.g. CONF-12345', type: 'text' },
               ].map(f => (
                 <div key={f.key}>
                   <label className="text-xs text-neutral-400 mb-1.5 block uppercase tracking-wide">{f.label}</label>
@@ -137,8 +171,8 @@ export default function Accommodation() {
                 </div>
               </div>
               <div className="flex gap-3 mt-2">
-                <button onClick={() => setShowForm(false)} className="flex-1 px-4 py-2.5 border border-white/10 rounded-full text-neutral-400 hover:text-white transition-colors">Cancel</button>
-                <button onClick={add} className="flex-1 px-4 py-2.5 bg-white text-black font-medium rounded-full hover:bg-neutral-200 transition-colors">Add</button>
+                <button onClick={() => { setShowForm(false); setEditingId(null); }} className="flex-1 px-4 py-2.5 border border-white/10 rounded-full text-neutral-400 hover:text-white transition-colors">Cancel</button>
+                <button onClick={save} className="flex-1 px-4 py-2.5 bg-white text-black font-medium rounded-full hover:bg-neutral-200 transition-colors">{editingId ? 'Save' : 'Add'}</button>
               </div>
             </div>
           </div>
