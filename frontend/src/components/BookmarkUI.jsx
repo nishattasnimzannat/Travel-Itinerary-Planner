@@ -40,55 +40,50 @@ function BookMarkUI() {
   );
 
   return (
-    <div style={{ padding: "30px", fontFamily: "Arial" }}>
-      <h1>Favorite / Bookmark Management</h1>
+    <div className="container">
+      <div className="card">
+        <h2 className="title">Favorite / Bookmark Management</h2>
 
-      <div style={{ marginBottom: "20px" }}>
-        <button onClick={() => setFavoritesOnly(false)} style={{ marginRight: "10px" }}>
-          All Trips
-        </button>
-
-        <button onClick={() => setFavoritesOnly(true)}>
-          Favorite Trips
-        </button>
-      </div>
+        <div className="button-group">
+          <button className="btn" onClick={() => setFavoritesOnly(false)}>
+            All Trips
+          </button>
+          <button className="btn" onClick={() => setFavoritesOnly(true)}>
+            Favorite Trips
+          </button>
+        </div>
 
       {favoritesOnly && (
         <input
+          className="input"
           type="text"
           placeholder="Search favorite trips..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          style={{ padding: "8px", marginBottom: "20px", width: "250px" }}
         />
       )}
 
       {filteredTrips.length === 0 ? (
-        <p>No trips found.</p>
+        <div className="card">
+         <p>No trips found.</p>
+        </div>
       ) : (
         filteredTrips.map((trip) => (
-          <div
-            key={trip._id}
-            style={{
-              border: "1px solid #ccc",
-              padding: "15px",
-              marginBottom: "10px",
-              borderRadius: "8px",
-            }}
-          >
-            <h3 style={{ margin: 0 }}>{trip.title}</h3>
-            <p style={{ margin: "8px 0" }}>Destination: {trip.destination}</p>
-            <p style={{ margin: "8px 0" }}>
-              Status: {trip.isFavorite ? "Bookmarked" : "Not Bookmarked"}
+          <div key={trip._id} className="card">
+            <h3>{trip.title}</h3>
+            <p><strong>Destination:</strong> {trip.destination}</p>
+            <p>
+              <strong>Status:</strong>{" "}
+              {trip.isFavorite ? "Bookmarked" : "Not Bookmarked"}
             </p>
-            <button onClick={() => toggleFavorite(trip._id)}>
+            <button className="btn" onClick={() => toggleFavorite(trip._id)}>
               {trip.isFavorite ? "Remove Bookmark" : "Add Bookmark"}
             </button>
           </div>
         ))
       )}
     </div>
-  );
+  </div>
+);
 }
-
 export default BookMarkUI;

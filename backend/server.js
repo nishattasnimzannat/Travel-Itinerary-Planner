@@ -7,6 +7,8 @@ dotenv.config();
 
 const tripRoutes = require("./routes/tripRoutes");
 const packingRoutes = require("./routes/packingRoutes");
+const journalRoutes = require("./routes/journalRoutes"); 
+const scheduleRoutes = require("./routes/scheduleRoutes");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -29,6 +31,8 @@ app.get("/api/test", (req, res) => {
 
 app.use("/api/trips", tripRoutes);
 app.use("/api/packing", packingRoutes);
+app.use("/api/journal", journalRoutes);
+app.use("/api/schedule", scheduleRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);

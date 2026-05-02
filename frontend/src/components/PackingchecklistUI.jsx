@@ -9,26 +9,25 @@ function PackingChecklistUI() {
   const [editingId, setEditingId] = useState(null);
   const [message, setMessage] = useState("");
 
+  // ================= FETCH TRIPS =================
   const fetchTrips = async () => {
     try {
       const res = await fetch("http://localhost:3000/api/trips");
       const data = await res.json();
       setTrips(data);
-
-      if (data.length > 0 && !selectedTripId) {
-        setSelectedTripId(data[0]._id);
-      }
     } catch (error) {
       console.error("Failed to fetch trips");
     }
   };
 
+  // ================= FETCH ITEMS =================
   const fetchPackingItems = async (tripId) => {
     if (!tripId) return;
 
     try {
       const res = await fetch(`http://localhost:3000/api/packing/${tripId}`);
       const data = await res.json();
+      console.log("Fetched items:", data); // DEBUG
       setPackingItems(data);
     } catch (error) {
       console.error("Failed to fetch packing items");
@@ -45,24 +44,35 @@ function PackingChecklistUI() {
     }
   }, [selectedTripId]);
 
+  // ================= ADD / UPDATE =================
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage("");
 
-    if (!itemName || !category) {
-      setMessage("Please fill all fields");
+    if (!selectedTripId || !itemName || !category) {
+      setMessage("Please select a trip and fill all fields");
       return;
     }
 
     try {
       if (editingId) {
-        await fetch(`http://localhost:3000/api/packing/${editingId}`, {
+        // ✅ FIXED UPDATE
+        const res = await fetch(`http://localhost:3000/api/packing/${editingId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ itemName, category }),
         });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          setMessage(data.message || "Update failed");
+          return;
+        }
+
         setMessage("Item updated");
       } else {
+        // ADD ITEM
         const res = await fetch("http://localhost:3000/api/packing", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -83,15 +93,21 @@ function PackingChecklistUI() {
         setMessage("Item added");
       }
 
+      // RESET
       setItemName("");
       setCategory("");
       setEditingId(null);
+
+      // REFRESH DATA
       fetchPackingItems(selectedTripId);
+
     } catch (error) {
+      console.error(error);
       setMessage("Something went wrong");
     }
   };
 
+  // ================= TOGGLE =================
   const togglePacked = async (id) => {
     try {
       await fetch(`http://localhost:3000/api/packing/${id}/toggle`, {
@@ -103,6 +119,7 @@ function PackingChecklistUI() {
     }
   };
 
+  // ================= DELETE =================
   const deleteItem = async (id) => {
     try {
       await fetch(`http://localhost:3000/api/packing/${id}`, {
@@ -114,6 +131,7 @@ function PackingChecklistUI() {
     }
   };
 
+  // ================= EDIT =================
   const startEdit = (item) => {
     setEditingId(item._id);
     setItemName(item.itemName);
@@ -124,97 +142,103 @@ function PackingChecklistUI() {
   const packedCount = packingItems.filter((item) => item.packed).length;
   const totalCount = packingItems.length;
 
+  // ================= UI =================
   return (
-    <div style={{ padding: "30px", fontFamily: "Arial", maxWidth: "800px", margin: "0 auto" }}>
-      <h1>Packing Checklist Builder</h1>
+    <div className="container">
+      <div className="card">
 
-      <div style={{ marginBottom: "20px" }}>
-        <label><strong>Select Trip: </strong></label>
+        <h1 className="title">Packing Checklist Builder</h1>
+
+        {/* SELECT TRIP */}
+        <label><strong>Select Trip:</strong></label>
         <select
+          className="input"
           value={selectedTripId}
           onChange={(e) => setSelectedTripId(e.target.value)}
-          style={{ padding: "8px", marginLeft: "10px" }}
         >
+          <option value="">-- Select Trip --</option>
           {trips.map((trip) => (
             <option key={trip._id} value={trip._id}>
               {trip.title} - {trip.destination}
             </option>
           ))}
         </select>
-      </div>
 
-      <form onSubmit={handleSubmit} style={{ marginBottom: "20px" }}>
-        <input
-          type="text"
-          placeholder="Item name"
-          value={itemName}
-          onChange={(e) => setItemName(e.target.value)}
-          style={{ padding: "8px", marginRight: "10px", width: "200px" }}
-        />
+        {/* FORM */}
+        <form onSubmit={handleSubmit}>
+          <input
+            className="input"
+            type="text"
+            placeholder="Item name"
+            value={itemName}
+            onChange={(e) => setItemName(e.target.value)}
+          />
 
-        <select
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          style={{ padding: "8px", marginRight: "10px" }}
-        >
-          <option value="">Select category</option>
-          <option value="Clothes">Clothes</option>
-          <option value="Electronics">Electronics</option>
-          <option value="Documents">Documents</option>
-          <option value="Toiletries">Toiletries</option>
-        </select>
-
-        <button type="submit">
-          {editingId ? "Update Item" : "Add Item"}
-        </button>
-      </form>
-
-      {message && <p>{message}</p>}
-
-      <h3>
-        Progress: {packedCount} / {totalCount} packed
-      </h3>
-
-      {packingItems.length === 0 ? (
-        <p>No packing items yet.</p>
-      ) : (
-        packingItems.map((item) => (
-          <div
-            key={item._id}
-            style={{
-              border: "1px solid #ccc",
-              borderRadius: "8px",
-              padding: "12px",
-              marginBottom: "10px",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
+          <select
+            className="input"
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
           >
-            <div>
-              <h4 style={{ margin: 0 }}>{item.itemName}</h4>
-              <p style={{ margin: "5px 0" }}>Category: {item.category}</p>
-              <p style={{ margin: "5px 0" }}>
-                Status: {item.packed ? "Packed" : "Unpacked"}
-              </p>
-            </div>
+            <option value="">Select category</option>
+            <option value="Clothes">Clothes</option>
+            <option value="Electronics">Electronics</option>
+            <option value="Documents">Documents</option>
+            <option value="Toiletries">Toiletries</option>
+          </select>
 
-            <div>
-              <button onClick={() => togglePacked(item._id)} style={{ marginRight: "8px" }}>
-                {item.packed ? "Mark Unpacked" : "Mark Packed"}
-              </button>
+          <button className="btn" type="submit">
+            {editingId ? "Update Item" : "Add Item"}
+          </button>
+        </form>
 
-              <button onClick={() => startEdit(item)} style={{ marginRight: "8px" }}>
-                Edit
-              </button>
+        {/* MESSAGE */}
+        {message && <div className="card">{message}</div>}
 
-              <button onClick={() => deleteItem(item._id)}>
-                Delete
-              </button>
-            </div>
+        {/* SHOW ONLY IF TRIP SELECTED */}
+        {!selectedTripId && (
+          <div className="card">
+            <p>Please select a trip first.</p>
           </div>
-        ))
-      )}
+        )}
+
+        {selectedTripId && (
+          <>
+            <h3>
+              Progress: {packedCount} / {totalCount} packed
+            </h3>
+
+            {packingItems.length === 0 ? (
+              <div className="card">
+                <p>No packing items yet.</p>
+              </div>
+            ) : (
+              packingItems.map((item) => (
+                <div key={item._id} className="card">
+                  <h4>{item.itemName}</h4>
+                  <p><strong>Category:</strong> {item.category}</p>
+                  <p>
+                    <strong>Status:</strong>{" "}
+                    {item.packed ? "Packed" : "Unpacked"}
+                  </p>
+
+                  <button className="btn" onClick={() => togglePacked(item._id)}>
+                    {item.packed ? "Mark Unpacked" : "Mark Packed"}
+                  </button>
+
+                  <button className="btn" onClick={() => startEdit(item)}>
+                    Edit
+                  </button>
+
+                  <button className="btn" onClick={() => deleteItem(item._id)}>
+                    Delete
+                  </button>
+                </div>
+              ))
+            )}
+          </>
+        )}
+
+      </div>
     </div>
   );
 }
